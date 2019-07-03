@@ -1,0 +1,6 @@
+
+*.png
+.ipynb_checkpoints/Playground-checkpoint.ipynb
+.ipynb_checkpoints/DataLoader-checkpoint.py
+.ipynb_checkpoints/README-checkpoint.md
+res.7z
