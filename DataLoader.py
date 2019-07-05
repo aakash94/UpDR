@@ -1,56 +1,39 @@
-from os import listdir
-from os.path import join
-import random
-
-from PIL import Image
-import torch
-import torch.utils.data as data
+import os
+from torch.utils.data import Dataset
 import torchvision.transforms as transforms
+from PIL import Image
+import random
+import math
 
-from utils import is_image_file, load_img
 
-# taken from https://github.com/mrzhu-cool/pix2pix-pytorch/blob/master/dataset.py
+class CustomDataLoader(Dataset):
+    
+    def __init__(self, root_dir):
+        self.hdr_folder = root_dir+"/hdr/"
+        self.sdr_folder = root_dir+"/sdr/"
+        self.image_count = sum([len(files) for r, d, files in os.walk(self.sdr_folder)])
+        self.digits_in_name = math.floor(math.log(self.image_count + 0.00001, 10))+1
+        self.extention = ".png"
+        self.transform = transforms.Compose([transforms.ToTensor()])
 
-
-class DatasetFromFolder(data.Dataset):
-    def __init__(self, image_dir, direction):
-        super(DatasetFromFolder, self).__init__()
-        self.direction = direction
-        self.a_path = join(image_dir, "a")
-        self.b_path = join(image_dir, "b")
-        self.image_filenames = [x for x in listdir(self.a_path) if is_image_file(x)]
-
-        transform_list = [transforms.ToTensor(),
-                          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-
-        self.transform = transforms.Compose(transform_list)
-
+        
     def __getitem__(self, index):
-        a = Image.open(join(self.a_path, self.image_filenames[index])).convert('RGB')
-        b = Image.open(join(self.b_path, self.image_filenames[index])).convert('RGB')
-        a = a.resize((286, 286), Image.BICUBIC)
-        b = b.resize((286, 286), Image.BICUBIC)
-        a = transforms.ToTensor()(a)
-        b = transforms.ToTensor()(b)
-        w_offset = random.randint(0, max(0, 286 - 256 - 1))
-        h_offset = random.randint(0, max(0, 286 - 256 - 1))
-    
-        a = a[:, h_offset:h_offset + 256, w_offset:w_offset + 256]
-        b = b[:, h_offset:h_offset + 256, w_offset:w_offset + 256]
-    
-        a = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(a)
-        b = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(b)
+        
+        if index == self.image_count:
+            index = random.randint(0,self.image_count)
 
-        if random.random() < 0.5:
-            idx = [i for i in range(a.size(2) - 1, -1, -1)]
-            idx = torch.LongTensor(idx)
-            a = a.index_select(2, idx)
-            b = b.index_select(2, idx)
-
-        if self.direction == "a2b":
-            return a, b
-        else:
-            return b, a
-
+        ind = str(index)
+        ind = ind.zfill(self.digits_in_name)
+        hdr_path = self.hdr_folder+ind+self.extention
+        sdr_path = self.sdr_folder+ind+self.extention
+        hdr_image = Image.open(hdr_path)
+        sdr_image = Image.open(sdr_path)
+        hdr_image = self.transform(hdr_image)
+        sdr_image = self.transform(sdr_image)
+        
+        return hdr_image, sdr_image
+        
+        
     def __len__(self):
-        return len(self.image_filenames)
+        return self.image_count
+    
