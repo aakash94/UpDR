@@ -5,3 +5,5 @@
 .ipynb_checkpoints/README-checkpoint.md
 res.7z
 __pycache__/DataLoader.cpython-37.pyc
+*.pyc
+.ipynb_checkpoints/UpNet-checkpoint.py
